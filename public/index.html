@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WalkieTalkie</title>
+  <style>
+    :root { color-scheme: dark; --ink:#f7f8fc; --muted:#aab2c6; --panel:#161d30; --line:#2b3652; --orange:#ff775f; --green:#35c978; }
+    * { box-sizing:border-box; } body { margin:0; min-height:100vh; display:grid; place-items:center; padding:20px; font-family:Inter,ui-sans-serif,system-ui,sans-serif; color:var(--ink); background:radial-gradient(circle at 30% 10%,#303e72 0,transparent 38%),linear-gradient(145deg,#0b1020,#10182c 60%,#16132b); }
+    .card { width:min(100%,520px); padding:32px; background:#161d30ed; border:1px solid #ffffff17; border-radius:26px; box-shadow:0 24px 70px #0007; }.brand { text-align:center; margin-bottom:25px; }.brand i{font-size:45px;font-style:normal}.brand h1{margin:5px 0;font-size:30px;letter-spacing:-1px}.brand p,.sub{color:var(--muted);font-size:14px;margin:0}
+    .entry-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }.entry-tab { padding:13px 8px; background:#202b46; color:var(--muted); font-size:14px; }.entry-tab.selected { color:#fff; background:linear-gradient(135deg,#ff705e,#f09955); }.entry-form { border:1px solid var(--line); border-radius:17px; padding:4px 18px 20px; background:#11192b; }
+    label { display:block; color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; margin:18px 0 7px; } input { width:100%; border:1px solid var(--line); border-radius:12px; background:#0c1220; color:var(--ink); font:inherit; padding:14px; outline:0; } input:focus { border-color:var(--orange); box-shadow:0 0 0 3px #ff775f25; } button { font:inherit; font-weight:750; border:0; border-radius:13px; cursor:pointer; transition:transform .15s,filter .15s; } button:hover{filter:brightness(1.08)}button:active{transform:scale(.97)}button:disabled{cursor:wait;opacity:.75}.primary{width:100%;padding:15px;margin-top:22px;color:#fff;background:linear-gradient(135deg,#ff705e,#f09955);box-shadow:0 9px 24px #e7694b45}.hidden{display:none!important}.hint{text-align:center;color:var(--muted);font-size:12px;margin:12px 0 0}
+    .room-code{display:inline-flex;align-items:center;gap:9px;margin-top:10px;padding:8px 11px;border:1px solid #ffc16b55;border-radius:99px;background:#0d1322;color:#ffca79;font:700 13px ui-monospace,monospace;letter-spacing:.12em}.copy{padding:4px 7px;border-radius:7px;background:#27334e;color:#d8e1f4;font-size:11px}.status{display:flex;align-items:center;justify-content:center;gap:8px;margin:22px 0 15px;padding:10px;border-radius:11px;background:#0c1220;color:var(--muted);font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:#ffbd59}.dot.online{background:var(--green);box-shadow:0 0 10px var(--green)}.people{border:1px solid var(--line);border-radius:15px;overflow:hidden;max-height:220px;overflow-y:auto}.person{display:flex;align-items:center;gap:11px;padding:12px;border-bottom:1px solid #26304a}.person:last-child{border:0}.avatar{display:grid;place-items:center;width:31px;height:31px;border-radius:50%;background:linear-gradient(135deg,#ff755e,#ffc16b);font-weight:800}.person-name{flex:1;font-size:14px}.state{font-size:11px;color:var(--muted)}.state.live{color:var(--green);font-weight:800}.ptt{width:100%;min-height:76px;margin-top:22px;color:#cbd1e1;background:#26324f;font-size:18px;touch-action:none;user-select:none}.ptt.active{background:linear-gradient(135deg,#20ab60,#46d883);color:white;box-shadow:0 8px 25px #35c97848}.meter{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#0c1220}.meter-head{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-bottom:7px}.meter-bar{height:6px;overflow:hidden;border-radius:20px;background:#27314a}.meter-value{height:100%;width:0;border-radius:inherit;background:var(--green);transition:width .06s linear}.input-picker{margin-top:10px}.input-picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;color:var(--muted);font-size:11px}.refresh{padding:3px 7px;border-radius:7px;background:#27334e;color:#d8e1f4;font-size:11px}.input-picker select{width:100%;border:1px solid var(--line);border-radius:9px;background:#0c1220;color:var(--ink);font:inherit;font-size:12px;padding:9px;outline:0}.input-picker select:focus{border-color:var(--orange)}.footer{display:flex;justify-content:space-between;align-items:center;margin-top:20px}.leave{background:transparent;color:#ff887c;padding:8px}.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,120px);opacity:0;transition:.25s;background:#26324f;border:1px solid #53607d;border-radius:11px;padding:12px 16px;font-size:14px;box-shadow:0 8px 24px #0008}.toast.show{transform:translate(-50%,0);opacity:1}
+    @media(max-width:390px){.card{padding:24px 18px}.entry-options{grid-template-columns:1fr}.brand h1{font-size:27px}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <section id="entryScreen">
+      <div class="brand"><i>📻</i><h1>WalkieTalkie</h1><p>Private, push-to-talk voice rooms.</p></div>
+      <div class="entry-options" role="tablist" aria-label="Room option">
+        <button id="createTab" class="entry-tab selected" type="button" role="tab" aria-selected="true">Create a room</button>
+        <button id="joinTab" class="entry-tab" type="button" role="tab" aria-selected="false">Join a room</button>
+      </div>
+      <form id="createForm" class="entry-form">
+        <label for="createName">Your name</label>
+        <input id="createName" maxlength="24" autocomplete="name" placeholder="e.g. Alex" required>
+        <button class="primary" type="submit">Create private room</button>
+        <p class="hint">We generate a unique invite code for you to share.</p>
+      </form>
+      <form id="joinForm" class="entry-form hidden">
+        <label for="joinName">Your name</label>
+        <input id="joinName" maxlength="24" autocomplete="name" placeholder="e.g. Alex" required>
+        <label for="joinCode">Invite code</label>
+        <input id="joinCode" maxlength="16" autocapitalize="characters" autocomplete="off" placeholder="e.g. A7K9P2" required>
+        <button class="primary" type="submit">Join private room</button>
+        <p class="hint">Ask the room creator for their invite code.</p>
+      </form>
+    </section>
+    <section id="roomScreen" class="hidden">
+      <div class="brand"><i>🎙️</i><h1>Private voice room</h1><p>Tap to transmit, or hold Space to talk.</p><div class="room-code"><span id="roomCode"></span><button id="copyCode" class="copy" type="button">Copy</button></div></div>
+      <div class="status"><span id="connectionDot" class="dot"></span><span id="connectionText">Connecting to room…</span></div>
+      <div class="people" id="people"></div>
+      <button id="ptt" class="ptt" type="button" disabled>🎙️ Tap to start talking</button>
+      <div class="meter"><div class="meter-head"><span>Microphone input</span><span id="micState">Muted</span></div><div class="meter-bar"><div id="micLevel" class="meter-value"></div></div></div>
+      <div class="input-picker"><div class="input-picker-head"><span>Microphone</span><button id="refreshMics" class="refresh" type="button">Refresh</button></div><select id="micSelect" aria-label="Microphone"><option>Detecting microphones…</option></select></div>
+      <p class="hint">Tap once to transmit; tap again to stop. Space remains push-to-talk. Use headphones to avoid feedback.</p>
+      <div class="footer"><span class="sub" id="roomHint">Waiting for others…</span><button id="leave" class="leave" type="button">Leave room</button></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  (() => {
+    const socket = io();
+    const $ = id => document.getElementById(id);
+    const ui = { entry:$('entryScreen'), room:$('roomScreen'), createTab:$('createTab'), joinTab:$('joinTab'), createForm:$('createForm'), joinForm:$('joinForm'), createName:$('createName'), joinName:$('joinName'), joinCode:$('joinCode'), roomCode:$('roomCode'), people:$('people'), ptt:$('ptt'), leave:$('leave'), copy:$('copyCode'), dot:$('connectionDot'), connection:$('connectionText'), hint:$('roomHint'), micLevel:$('micLevel'), micState:$('micState'), micSelect:$('micSelect'), refreshMics:$('refreshMics'), toast:$('toast') };
+    const peers = new Map(), speaking = new Set(), users = new Map();
+    const iceServers = [{ urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }];
+    let localStream, currentCode = '', transmitting = false, joined = false, toastTimer, meterContext, meterAnimation, silentFrames = 0;
+
+    function showToast(message) { ui.toast.textContent = message; ui.toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 2800); }
+    function newCode() { const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const numbers = new Uint32Array(8); crypto.getRandomValues(numbers); return Array.from(numbers, number => chars[number % chars.length]).join(''); }
+    function setStatus(message, online) { ui.connection.textContent = message; ui.dot.classList.toggle('online', Boolean(online)); }
+    function isConnected(pc) { return pc && (['connected', 'completed'].includes(pc.iceConnectionState) || pc.connectionState === 'connected'); }
+    function changeTab(which) {
+      const creating = which === 'create';
+      ui.createForm.classList.toggle('hidden', !creating); ui.joinForm.classList.toggle('hidden', creating);
+      ui.createTab.classList.toggle('selected', creating); ui.joinTab.classList.toggle('selected', !creating);
+      ui.createTab.setAttribute('aria-selected', creating); ui.joinTab.setAttribute('aria-selected', !creating);
+      (creating ? ui.createName : ui.joinName).focus();
+    }
+    function renderPeople() {
+      ui.people.replaceChildren();
+      for (const user of users.values()) {
+        const me = user.userId === socket.id, peer = peers.get(user.userId);
+        const state = me ? (transmitting ? 'Transmitting' : 'Ready') : (speaking.has(user.userId) ? 'Speaking' : isConnected(peer) ? 'Connected' : 'Connecting…');
+        const row = document.createElement('div'), avatar = document.createElement('div'), name = document.createElement('div'), label = document.createElement('span');
+        row.className = 'person'; avatar.className = 'avatar'; avatar.textContent = user.name[0].toUpperCase(); name.className = 'person-name'; name.textContent = me ? `${user.name} (You)` : user.name;
+        label.className = `state ${['Speaking', 'Transmitting', 'Connected'].includes(state) ? 'live' : ''}`; label.textContent = state; row.append(avatar, name, label); ui.people.append(row);
+      }
+      const others = Math.max(0, users.size - 1); ui.hint.textContent = others ? `${others} other ${others === 1 ? 'person' : 'people'} in this room` : 'Share the code to invite someone.';
+    }
+    function audioConstraints(deviceId) {
+      // Keep the built-in Mac microphone's raw capture path available. Browser audio
+      // processing is optional and can suppress low-level built-in input on some Macs.
+      const constraints = { channelCount:{ ideal:1 }, sampleRate:{ ideal:48000 } };
+      if (deviceId) constraints.deviceId = { exact:deviceId };
+      return constraints;
+    }
+    async function getMic(deviceId) {
+      if (!navigator.mediaDevices?.getUserMedia) throw Error('This browser does not support microphone access.');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints(deviceId), video:false });
+      stream.getAudioTracks().forEach(track => track.enabled = transmitting); return stream;
+    }
+    async function loadMicrophones() {
+      try {
+        const devices = (await navigator.mediaDevices.enumerateDevices()).filter(device => device.kind === 'audioinput');
+        const selectedId = localStream?.getAudioTracks()[0]?.getSettings().deviceId;
+        ui.micSelect.replaceChildren();
+        if (!devices.length) { ui.micSelect.add(new Option('No microphones found', '')); return; }
+        devices.forEach((device, index) => ui.micSelect.add(new Option(device.label || `Microphone ${index + 1}`, device.deviceId, false, device.deviceId === selectedId)));
+        if (!ui.micSelect.value && selectedId) ui.micSelect.value = selectedId;
+      } catch (error) { console.warn('Could not list microphones', error); ui.micSelect.replaceChildren(new Option('Could not detect microphones', '')); }
+    }
+    async function switchMicrophone(deviceId) {
+      if (!deviceId || !localStream) return;
+      ui.micSelect.disabled = true; let nextStream;
+      try {
+        nextStream = await getMic(deviceId);
+        const nextTrack = nextStream.getAudioTracks()[0];
+        await Promise.all([...peers.values()].map(peer => {
+          const sender = peer.getSenders().find(candidate => candidate.track?.kind === 'audio');
+          return sender ? sender.replaceTrack(nextTrack) : Promise.resolve();
+        }));
+        localStream.getTracks().forEach(track => track.stop()); localStream = nextStream; setupMicMeter(localStream);
+        await loadMicrophones(); showToast('Microphone changed.');
+      } catch (error) { nextStream?.getTracks().forEach(track => track.stop()); console.error('Microphone switch failed', error); showToast('Could not use that microphone.'); await loadMicrophones(); }
+      finally { ui.micSelect.disabled = false; }
+    }
+    function setupMicMeter(stream) {
+      cancelAnimationFrame(meterAnimation);
+      meterContext?.close().catch(() => {});
+      const Context = window.AudioContext || window.webkitAudioContext;
+      if (!Context) return;
+      meterContext = new Context(); meterContext.resume().catch(() => {});
+      const analyser = meterContext.createAnalyser(); analyser.fftSize = 256;
+      meterContext.createMediaStreamSource(stream).connect(analyser);
+      const values = new Uint8Array(analyser.fftSize);
+      const draw = () => {
+        analyser.getByteTimeDomainData(values);
+        let total = 0; for (const value of values) total += Math.abs(value - 128);
+        const level = Math.min(100, (total / values.length) * 5);
+        ui.micLevel.style.width = transmitting ? `${level}%` : '0%';
+        silentFrames = transmitting && level < 1 ? silentFrames + 1 : 0;
+        ui.micState.textContent = transmitting ? (level > 1 ? 'Voice detected' : silentFrames > 90 ? 'No signal — choose a mic below' : 'Listening…') : 'Muted';
+        meterAnimation = requestAnimationFrame(draw);
+      }; draw();
+    }
+    function createPeer(userId) {
+      if (peers.has(userId)) return peers.get(userId);
+      const pc = new RTCPeerConnection({ iceServers }); pc.pendingCandidates = [];
+      localStream.getAudioTracks().forEach(track => pc.addTrack(track, localStream));
+      pc.onicecandidate = event => { if (event.candidate) socket.emit('ice-candidate', { target:userId, candidate:event.candidate }); };
+      pc.ontrack = event => connectAudio(userId, event.streams[0] || new MediaStream([event.track]));
+      pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') closePeer(userId); renderPeople(); };
+      pc.oniceconnectionstatechange = renderPeople; peers.set(userId, pc); return pc;
+    }
+    function connectAudio(userId, stream) {
+      let audio = $(`audio-${userId}`);
+      if (!audio) { audio = document.createElement('audio'); audio.id = `audio-${userId}`; audio.autoplay = true; audio.playsInline = true; document.body.append(audio); }
+      audio.muted = false; audio.volume = 1;
+      if (audio.srcObject !== stream) audio.srcObject = stream;
+      audio.play().catch(() => showToast('Tap the transmit button once to allow incoming audio.'));
+    }
+    function closePeer(userId) { const peer = peers.get(userId); if (peer) { peer.close(); peers.delete(userId); } $(`audio-${userId}`)?.remove(); speaking.delete(userId); }
+    async function addPendingCandidates(peer) { while (peer.pendingCandidates.length) await peer.addIceCandidate(peer.pendingCandidates.shift()); }
+    async function makeOffer(userId) { try { const peer = createPeer(userId); const offer = await peer.createOffer(); await peer.setLocalDescription(offer); socket.emit('offer', { target:userId, sdp:peer.localDescription }); } catch (error) { console.error(error); showToast('Could not start voice connection.'); } }
+    function startTalking(event) { event?.preventDefault(); if (!joined || transmitting || !localStream?.getAudioTracks().some(track => track.readyState === 'live')) return; meterContext?.resume().catch(() => {}); silentFrames = 0; transmitting = true; localStream.getAudioTracks().forEach(track => track.enabled = true); ui.ptt.classList.add('active'); ui.ptt.textContent = '🎙️ Transmitting… tap to stop'; socket.emit('speaking-state', { isSpeaking:true }); renderPeople(); }
+    function stopTalking(event) { event?.preventDefault(); if (!transmitting) return; transmitting = false; silentFrames = 0; localStream.getAudioTracks().forEach(track => track.enabled = false); ui.ptt.classList.remove('active'); ui.ptt.textContent = '🎙️ Tap to start talking'; ui.micLevel.style.width = '0%'; ui.micState.textContent = 'Muted'; socket.emit('speaking-state', { isSpeaking:false }); renderPeople(); }
+    async function enterRoom(name, code, button) {
+      if (!name || !code) return showToast('Enter your name and invite code.');
+      button.disabled = true; const originalText = button.textContent; button.textContent = 'Requesting microphone…';
+      try {
+        localStream = await getMic(); setupMicMeter(localStream); await loadMicrophones();
+        socket.emit('join-room', { userName:name, roomCode:code }, async response => {
+          if (!response?.ok) { localStream.getTracks().forEach(track => track.stop()); localStream = null; button.disabled = false; button.textContent = originalText; return showToast(response?.error || 'Could not join room.'); }
+          joined = true; currentCode = response.roomCode; ui.roomCode.textContent = currentCode; ui.entry.classList.add('hidden'); ui.room.classList.remove('hidden'); ui.ptt.disabled = false; setStatus('In private room', true);
+          for (const user of response.users) await makeOffer(user.userId);
+        });
+      } catch (error) { console.error(error); button.disabled = false; button.textContent = originalText; showToast(error.name === 'NotAllowedError' ? 'Microphone permission was denied.' : error.message || 'Could not access microphone.'); }
+    }
+
+    socket.on('disconnect', () => { if (joined) setStatus('Connection lost — reconnecting…', false); });
+    socket.on('users-list', list => { users.clear(); list.forEach(user => users.set(user.userId, user)); renderPeople(); });
+    socket.on('user-joined', ({ userId }) => { if (joined) createPeer(userId); });
+    socket.on('user-left', ({ userId }) => { closePeer(userId); renderPeople(); });
+    socket.on('user-speaking-state', ({ userId, isSpeaking }) => { isSpeaking ? speaking.add(userId) : speaking.delete(userId); renderPeople(); });
+    socket.on('offer', async ({ sender, sdp }) => { try { const peer = createPeer(sender); await peer.setRemoteDescription(sdp); await addPendingCandidates(peer); const answer = await peer.createAnswer(); await peer.setLocalDescription(answer); socket.emit('answer', { target:sender, sdp:peer.localDescription }); } catch (error) { console.error('offer error', error); } });
+    socket.on('answer', async ({ sender, sdp }) => { try { const peer = peers.get(sender); if (!peer) return; await peer.setRemoteDescription(sdp); await addPendingCandidates(peer); } catch (error) { console.error('answer error', error); } });
+    socket.on('ice-candidate', async ({ sender, candidate }) => { const peer = createPeer(sender); try { if (peer.remoteDescription) await peer.addIceCandidate(candidate); else peer.pendingCandidates.push(candidate); } catch (error) { console.warn('ICE error', error); } });
+
+    ui.createTab.addEventListener('click', () => changeTab('create')); ui.joinTab.addEventListener('click', () => changeTab('join'));
+    ui.micSelect.addEventListener('change', () => switchMicrophone(ui.micSelect.value)); ui.refreshMics.addEventListener('click', loadMicrophones); navigator.mediaDevices?.addEventListener?.('devicechange', loadMicrophones);
+    ui.createForm.addEventListener('submit', event => { event.preventDefault(); enterRoom(ui.createName.value.trim(), newCode(), event.submitter); });
+    ui.joinForm.addEventListener('submit', event => { event.preventDefault(); const code = ui.joinCode.value.trim().toUpperCase(); if (!/^[A-Z0-9]{4,16}$/.test(code)) return showToast('Invite codes use 4–16 letters or numbers.'); enterRoom(ui.joinName.value.trim(), code, event.submitter); });
+    ui.copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(currentCode); showToast('Invite code copied.'); } catch { showToast(`Invite code: ${currentCode}`); } });
+    ui.ptt.addEventListener('click', event => { transmitting ? stopTalking(event) : startTalking(event); });
+    window.addEventListener('keydown', event => { if (event.code === 'Space' && !event.repeat && joined && document.activeElement.tagName !== 'INPUT') startTalking(event); }); window.addEventListener('keyup', event => { if (event.code === 'Space' && joined) stopTalking(event); });
+    ui.leave.addEventListener('click', () => { stopTalking(); socket.emit('leave-room'); [...peers.keys()].forEach(closePeer); localStream?.getTracks().forEach(track => track.stop()); meterContext?.close().catch(() => {}); cancelAnimationFrame(meterAnimation); joined = false; ui.room.classList.add('hidden'); ui.entry.classList.remove('hidden'); ui.ptt.disabled = true; });
+    window.addEventListener('beforeunload', () => { if (joined) socket.emit('leave-room'); });
+  })();
+  </script>
+</body>
+</html>
