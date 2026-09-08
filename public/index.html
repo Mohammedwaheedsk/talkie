@@ -208,8 +208,7 @@
     .video-tile.landscape { aspect-ratio:16/9; }
     .video-tile.local { z-index:1; border:1px solid #9affee88; border-radius:14px; box-shadow:0 8px 24px #000; }
     .video-tile.local .video-name { color:#9affee; }
-    .video-tile.remote video { width:100%; height:100%; object-fit:contain; display:block; background:#000; }
-    .video-tile.local video { width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+    .video-tile.remote video, .video-tile.local video { width:100%; height:100%; object-fit:contain; object-position:center; display:block; background:#000; }
     .video-name { position:absolute; left:10px; bottom:8px; padding:4px 7px; border-radius:6px; background:#061018cc; color:#d7ffff; font-size:11px; font-weight:700; }
     .video-empty { display:grid; place-items:center; min-height:180px; color:#66818b; font-size:13px; text-align:center; }
     .video-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; flex:0 0 auto; padding-top:10px; color:#9aabad; font-size:12px; }
@@ -226,6 +225,8 @@
       .video-tile, .video-tile.landscape { aspect-ratio:16/9; }
       .video-tile.portrait { width:100%; aspect-ratio:16/9; justify-self:stretch; }
       .video-tile.local { width:100%; min-width:0; max-width:none; border-radius:12px; }
+      .video-tile.remote { order:1; }
+      .video-tile.local { order:2; }
       .video-footer { align-items:stretch; flex-direction:column; gap:12px; }
       .video-controls { display:grid; grid-template-columns:1fr 1fr; justify-content:stretch; }
       .video-control, .video-leave { width:100%; min-height:46px; }
@@ -525,10 +526,17 @@
       s.getAudioTracks().forEach(t => t.enabled = transmitting); return s;
     }
     async function getCamera() {
-      return navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio:{ channelCount:{ ideal:1 }, echoCancellation:{ ideal:true }, noiseSuppression:{ ideal:true } },
-        video:{ facingMode:{ ideal:cameraFacing }, resizeMode:'none' }
+        video:{ facingMode:{ ideal:cameraFacing } }
       });
+      await resetCameraZoom(stream.getVideoTracks()[0]);
+      return stream;
+    }
+    async function resetCameraZoom(track) {
+      const capabilities = track?.getCapabilities?.();
+      if (!capabilities?.zoom || capabilities.zoom.min > 1 || capabilities.zoom.max < 1) return;
+      try { await track.applyConstraints({ advanced:[{ zoom:1 }] }); } catch { return; }
     }
     async function switchCamera() {
       if (mode !== 'video' || !localStream) return;
@@ -537,9 +545,10 @@
       try {
         cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
         nextStream = await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:{ exact:cameraFacing }, resizeMode:'none' }, audio:false
+          video:{ facingMode:{ exact:cameraFacing } }, audio:false
         });
         const nextTrack = nextStream.getVideoTracks()[0];
+        await resetCameraZoom(nextTrack);
         await Promise.all([...peers.values()].map(pc => {
           const sender = pc.getSenders().find(item => item.track?.kind === 'video');
           return sender ? sender.replaceTrack(nextTrack) : Promise.resolve();
@@ -645,6 +654,7 @@
     function applyVideoOrientation(video, tile) {
       const update = () => {
         if (!video.videoWidth || !video.videoHeight) return;
+        tile.style.setProperty('--stream-ratio', `${video.videoWidth} / ${video.videoHeight}`);
         tile.classList.toggle('portrait', video.videoHeight > video.videoWidth);
         tile.classList.toggle('landscape', video.videoWidth >= video.videoHeight);
       };
