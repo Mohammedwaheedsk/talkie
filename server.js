@@ -22,53 +22,60 @@ app.get('/api/ice-config', (_req, res) => {
 
 function roomCode(value) {
   const code = String(value || '').trim().toUpperCase();
-  return /^[A-Z0-9]{4,16}$/.test(code) ? code : null;
+  return /^[A-Z0-9]{6}$/.test(code) ? code : null;
 }
 function name(value) {
   const result = String(value || '').trim().replace(/\s+/g, ' ');
   return result.length >= 1 && result.length <= 24 ? result : null;
 }
+function roomMode(value) { return value === 'video' ? 'video' : value === 'audio' ? 'audio' : null; }
+function roomKey(mode, code) { return `${mode}:${code}`; }
 function members(code) { return Array.from(rooms.get(code)?.values() || []); }
 function leave(socket) {
-  const code = socket.data.roomCode;
-  if (!code) return;
-  socket.leave(code);
-  const room = rooms.get(code);
+  const key = socket.data.roomKey;
+  if (!key) return;
+  socket.leave(key);
+  const room = rooms.get(key);
   if (room) {
     room.delete(socket.id);
-    if (room.size) io.to(code).emit('users-list', members(code));
-    else rooms.delete(code);
+    if (room.size) io.to(key).emit('users-list', Array.from(room.values()));
+    else rooms.delete(key);
   }
-  socket.to(code).emit('user-left', { userId: socket.id });
+  socket.to(key).emit('user-left', { userId: socket.id });
   socket.data.roomCode = null;
+  socket.data.roomKey = null;
 }
 function canSignal(socket, target) {
-  return Boolean(socket.data.roomCode && rooms.get(socket.data.roomCode)?.has(target));
+  return Boolean(socket.data.roomKey && rooms.get(socket.data.roomKey)?.has(target));
 }
 
 io.on('connection', socket => {
   socket.on('join-room', (payload, respond) => {
     const code = roomCode(payload?.roomCode);
     const displayName = name(payload?.userName);
-    if (!code || !displayName) return respond?.({ ok: false, error: 'Enter a name and a 4–16 character invite code.' });
+    const mode = roomMode(payload?.mode);
+    if (!code || !displayName || !mode) return respond?.({ ok: false, error: 'Enter a name and a 6-character invite code.' });
     leave(socket);
-    const room = rooms.get(code) || new Map();
+    const key = roomKey(mode, code);
+    const room = rooms.get(key) || new Map();
     if (room.size >= MAX_ROOM_SIZE) return respond?.({ ok: false, error: 'This room is full (maximum 8 people).' });
     const existingUsers = Array.from(room.values());
-    room.set(socket.id, { userId: socket.id, name: displayName });
-    rooms.set(code, room);
-    socket.join(code);
+    room.set(socket.id, { userId: socket.id, name: displayName, mode });
+    rooms.set(key, room);
+    socket.join(key);
     socket.data.roomCode = code;
-    respond?.({ ok: true, roomCode: code, users: existingUsers });
-    io.to(code).emit('users-list', members(code));
-    socket.to(code).emit('user-joined', { userId: socket.id, name: displayName });
+    socket.data.roomKey = key;
+    socket.data.mode = mode;
+    respond?.({ ok: true, roomCode: code, mode, users: existingUsers });
+    io.to(key).emit('users-list', Array.from(room.values()));
+    socket.to(key).emit('user-joined', { userId: socket.id, name: displayName, mode });
   });
   ['offer', 'answer', 'ice-candidate'].forEach(eventName => socket.on(eventName, payload => {
     if (!payload?.target || !canSignal(socket, payload.target)) return;
     io.to(payload.target).emit(eventName, { sender: socket.id, ...(eventName === 'ice-candidate' ? { candidate: payload.candidate } : { sdp: payload.sdp }) });
   }));
   socket.on('speaking-state', ({ isSpeaking }) => {
-    if (socket.data.roomCode) socket.to(socket.data.roomCode).emit('user-speaking-state', { userId: socket.id, isSpeaking: Boolean(isSpeaking) });
+    if (socket.data.roomKey && socket.data.mode === 'audio') socket.to(socket.data.roomKey).emit('user-speaking-state', { userId: socket.id, isSpeaking: Boolean(isSpeaking) });
   });
   socket.on('leave-room', () => leave(socket));
   socket.on('disconnect', () => leave(socket));
