@@ -202,11 +202,11 @@
     .video-title { color:#d9fffa; font-family:Orbitron,monospace; font-size:clamp(12px,2vw,18px); letter-spacing:1px; text-shadow:0 1px 8px #000; }
     .video-code { color:#c6d4d5; font-family:Orbitron,monospace; font-size:12px; letter-spacing:2px; text-shadow:0 1px 8px #000; }
     .video-grid { position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:center; align-items:center; gap:clamp(12px,2vw,24px); flex:1 1 auto; min-height:0; width:100%; padding:clamp(8px,2vw,24px); background:#000; overflow:auto; }
-    .video-tile { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border:1px solid #263338; border-radius:14px; background:#000; box-shadow:0 8px 24px #000; }
+    .video-tile { position:relative; width:100%; aspect-ratio:var(--stream-ratio, 16 / 9); overflow:hidden; border:1px solid #263338; border-radius:14px; background:#000; box-shadow:0 8px 24px #000; }
     .video-tile.remote, .video-tile.local { display:grid; place-items:center; }
-    .video-tile.portrait { aspect-ratio:16/9; }
-    .video-tile.landscape { aspect-ratio:16/9; }
-    .video-tile.local { z-index:1; border:1px solid #9affee88; border-radius:14px; box-shadow:0 8px 24px #000; }
+    .video-tile.portrait { aspect-ratio:var(--stream-ratio, 9 / 16); }
+    .video-tile.landscape { aspect-ratio:var(--stream-ratio, 16 / 9); }
+    .video-tile.local { z-index:1; aspect-ratio:var(--stream-ratio, 16 / 9); border:1px solid #9affee88; border-radius:14px; box-shadow:0 8px 24px #000; }
     .video-tile.local .video-name { color:#9affee; }
     .video-tile.remote video, .video-tile.local video { width:100%; height:100%; object-fit:contain; object-position:center; display:block; background:#000; }
     .video-name { position:absolute; left:10px; bottom:8px; padding:4px 7px; border-radius:6px; background:#061018cc; color:#d7ffff; font-size:11px; font-weight:700; }
@@ -222,8 +222,8 @@
       .video-room { padding:calc(8px + var(--safe-top)) 8px calc(8px + var(--safe-bottom)); }
       .video-header { padding:0 6px; }
       .video-grid { grid-template-columns:1fr; align-content:start; gap:12px; padding:8px 4px 16px; }
-      .video-tile, .video-tile.landscape { aspect-ratio:16/9; }
-      .video-tile.portrait { width:100%; aspect-ratio:16/9; justify-self:stretch; }
+      .video-tile, .video-tile.landscape { aspect-ratio:var(--stream-ratio, 16 / 9); }
+      .video-tile.portrait { width:100%; aspect-ratio:var(--stream-ratio, 9 / 16); justify-self:stretch; }
       .video-tile.local { width:100%; min-width:0; max-width:none; border-radius:12px; }
       .video-tile.remote { order:1; }
       .video-tile.local { order:2; }
@@ -525,10 +525,16 @@
       const s = await navigator.mediaDevices.getUserMedia({ audio:audioConstraints(deviceId), video:false });
       s.getAudioTracks().forEach(t => t.enabled = transmitting); return s;
     }
+    function cameraVideoConstraints() {
+      const mobilePortrait = matchMedia('(max-width:640px) and (orientation:portrait)').matches;
+      return mobilePortrait
+        ? { facingMode:{ ideal:cameraFacing }, aspectRatio:{ ideal:9 / 16 }, width:{ ideal:720 }, height:{ ideal:1280 } }
+        : { facingMode:{ ideal:cameraFacing }, aspectRatio:{ ideal:16 / 9 }, width:{ ideal:1280 }, height:{ ideal:720 } };
+    }
     async function getCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio:{ channelCount:{ ideal:1 }, echoCancellation:{ ideal:true }, noiseSuppression:{ ideal:true } },
-        video:{ facingMode:{ ideal:cameraFacing } }
+        video:cameraVideoConstraints()
       });
       await resetCameraZoom(stream.getVideoTracks()[0]);
       return stream;
@@ -545,7 +551,7 @@
       try {
         cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
         nextStream = await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:{ exact:cameraFacing } }, audio:false
+          video:{ ...cameraVideoConstraints(), facingMode:{ exact:cameraFacing } }, audio:false
         });
         const nextTrack = nextStream.getVideoTracks()[0];
         await resetCameraZoom(nextTrack);
