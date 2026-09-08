@@ -1,6 +1,7 @@
 # WalkieTalkie
 
-Voice uses WebRTC between room members. Socket.IO carries signaling, not audio.
+Voice and video use WebRTC between room members. Socket.IO carries signaling,
+not media. Walkie-talkie audio and video calls are separate room modes.
 STUN alone cannot connect many mobile-carrier, symmetric-NAT and firewalled
 networks. Configure a real TURN relay to support these connections.
 
@@ -22,8 +23,15 @@ networks. Configure a real TURN relay to support these connections.
    TCP/TLS endpoints the provider supports. TLS on port 443 is particularly
    useful on restrictive networks. Do not put credentials in source control.
 3. Deploy these code changes and save the environment changes in Render.
-4. Open the same public HTTPS app URL on both devices and join the same room.
+4. Open the same public HTTPS app URL on both devices and join the same 6-character room code.
    Remote microphone access requires HTTPS; localhost is a development exception.
+
+## Audio and video rooms
+
+Choose **Walkie-talkie** for push-to-talk audio or **Video call** for camera and
+microphone calling. Both modes use six-character alphanumeric codes. The same
+code can be used independently for one audio room and one video room; users in
+different modes cannot see or signal each other.
 
 `/api/ice-config` supplies browser-required TURN credentials with `no-store`.
 These credentials are visible to app visitors, as required for browser TURN
