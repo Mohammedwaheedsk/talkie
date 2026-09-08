@@ -202,8 +202,11 @@
     .video-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
     .video-title { color:#9affee; font-family:Orbitron,monospace; font-size:clamp(14px,4vw,20px); letter-spacing:1px; }
     .video-code { color:#7ea5ad; font-family:Orbitron,monospace; font-size:12px; letter-spacing:2px; }
-    .video-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; align-items:start; }
+    .video-grid { position:relative; display:grid; grid-template-columns:1fr; gap:16px; align-items:start; min-height:clamp(420px,68vh,720px); }
     .video-tile { position:relative; aspect-ratio:16/10; overflow:hidden; border:1px solid #ffffff14; border-radius:16px; background:#071016; box-shadow:0 12px 28px #00000024; }
+    .video-tile.remote { aspect-ratio:16/9; }
+    .video-tile.local { position:absolute; z-index:2; right:18px; bottom:18px; width:clamp(150px,24vw,260px); aspect-ratio:16/10; border-color:#9affee66; box-shadow:0 10px 30px #00000066; }
+    .video-tile.local .video-name { color:#9affee; }
     .video-tile video { width:100%; height:100%; object-fit:cover; display:block; }
     .video-name { position:absolute; left:10px; bottom:8px; padding:4px 7px; border-radius:6px; background:#061018cc; color:#d7ffff; font-size:11px; font-weight:700; }
     .video-empty { display:grid; place-items:center; min-height:180px; color:#66818b; font-size:13px; text-align:center; }
@@ -217,8 +220,10 @@
       body { align-items:flex-start; padding:10px; padding-top:calc(10px + var(--safe-top)); }
       .video-room { width:100%; min-height:calc(100dvh - 20px); padding:14px; border-radius:18px; }
       .video-header { margin-bottom:14px; }
-      .video-grid { grid-template-columns:1fr; gap:10px; }
+      .video-grid { gap:10px; min-height:calc(100dvh - 220px); }
       .video-tile { border-radius:12px; }
+      .video-tile.remote { aspect-ratio:9/16; max-height:calc(100dvh - 220px); }
+      .video-tile.local { right:12px; bottom:12px; width:34vw; min-width:112px; max-width:150px; border-radius:10px; }
       .video-footer { align-items:stretch; flex-direction:column; gap:12px; }
       .video-controls { display:grid; grid-template-columns:1fr 1fr; justify-content:stretch; }
       .video-control, .video-leave { width:100%; min-height:46px; }
@@ -342,7 +347,7 @@
       <div class="video-code" id="videoRoomCode">------</div>
     </div>
     <div class="video-grid" id="videoGrid">
-      <div class="video-tile"><video id="localVideo" autoplay muted playsinline></video><div class="video-name">You</div></div>
+      <div class="video-tile local"><video id="localVideo" autoplay muted playsinline></video><div class="video-name">You</div></div>
     </div>
     <div class="video-footer">
       <span id="videoStatus">Waiting for another camera…</span>
