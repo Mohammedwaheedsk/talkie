@@ -201,10 +201,10 @@
     .video-header { position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:12px; flex:0 0 auto; }
     .video-title { color:#d9fffa; font-family:Orbitron,monospace; font-size:clamp(12px,2vw,18px); letter-spacing:1px; text-shadow:0 1px 8px #000; }
     .video-code { color:#c6d4d5; font-family:Orbitron,monospace; font-size:12px; letter-spacing:2px; text-shadow:0 1px 8px #000; }
-    .video-grid { position:relative; display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); align-content:center; align-items:center; gap:clamp(12px,2vw,24px); flex:1 1 auto; min-height:0; width:100%; padding:clamp(8px,2vw,24px); background:#000; overflow:auto; }
+    .video-grid { position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:center; align-items:center; gap:clamp(12px,2vw,24px); flex:1 1 auto; min-height:0; width:100%; padding:clamp(8px,2vw,24px); background:#000; overflow:auto; }
     .video-tile { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border:1px solid #263338; border-radius:14px; background:#000; box-shadow:0 8px 24px #000; }
     .video-tile.remote, .video-tile.local { display:grid; place-items:center; }
-    .video-tile.portrait { aspect-ratio:9/16; max-height:100%; }
+    .video-tile.portrait { aspect-ratio:16/9; }
     .video-tile.landscape { aspect-ratio:16/9; }
     .video-tile.local { z-index:1; border:1px solid #9affee88; border-radius:14px; box-shadow:0 8px 24px #000; }
     .video-tile.local .video-name { color:#9affee; }
@@ -224,7 +224,7 @@
       .video-header { padding:0 6px; }
       .video-grid { grid-template-columns:1fr; align-content:start; gap:12px; padding:8px 4px 16px; }
       .video-tile, .video-tile.landscape { aspect-ratio:16/9; }
-      .video-tile.portrait { width:min(100%,360px); aspect-ratio:9/16; justify-self:center; }
+      .video-tile.portrait { width:100%; aspect-ratio:16/9; justify-self:stretch; }
       .video-tile.local { width:100%; min-width:0; max-width:none; border-radius:12px; }
       .video-footer { align-items:stretch; flex-direction:column; gap:12px; }
       .video-controls { display:grid; grid-template-columns:1fr 1fr; justify-content:stretch; }
@@ -527,7 +527,7 @@
     async function getCamera() {
       return navigator.mediaDevices.getUserMedia({
         audio:{ channelCount:{ ideal:1 }, echoCancellation:{ ideal:true }, noiseSuppression:{ ideal:true } },
-        video:{ width:{ ideal:1280 }, height:{ ideal:720 }, facingMode:{ ideal:cameraFacing } }
+        video:{ facingMode:{ ideal:cameraFacing }, resizeMode:'none' }
       });
     }
     async function switchCamera() {
@@ -537,7 +537,7 @@
       try {
         cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
         nextStream = await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:{ exact:cameraFacing }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false
+          video:{ facingMode:{ exact:cameraFacing }, resizeMode:'none' }, audio:false
         });
         const nextTrack = nextStream.getVideoTracks()[0];
         await Promise.all([...peers.values()].map(pc => {
