@@ -327,7 +327,7 @@
 
     const socket = io({ transports:['websocket','polling'] });
     const peers = new Map(), speakingSet = new Set(), usersMap = new Map();
-    const iceServers = [{ urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }];
+    let rtcConfiguration;
     let localStream, currentCode = '', transmitting = false, joined = false;
     let meterCtx, meterAnim, silentFrames = 0;
 
@@ -408,8 +408,9 @@
         const me = user.userId === socket.id, pc = peers.get(user.userId);
         const isSp = speakingSet.has(user.userId), conn = isConnected(pc);
         if (!me && conn) connCount++;
+        const failed = pc?.iceConnectionState === 'failed' || pc?.connectionState === 'failed';
         const state = me ? (transmitting ? 'TX — ON AIR' : 'STANDBY')
-          : (isSp ? 'RECEIVING' : conn ? 'LINKED' : 'SYNCING…');
+          : (failed ? 'LINK FAILED' : isSp && conn ? 'RECEIVING' : conn ? 'LINKED' : 'SYNCING…');
         const row = document.createElement('div');
         row.className = 'user-row' + (isSp && !me ? ' speaking' : '');
         const dot = document.createElement('div');
@@ -496,12 +497,28 @@
     // ═══════════════════════════
     function createPeer(userId) {
       if (peers.has(userId)) return peers.get(userId);
-      const pc = new RTCPeerConnection({ iceServers }); pc.pendingCandidates = [];
+      const pc = new RTCPeerConnection(rtcConfiguration); pc.pendingCandidates = [];
       localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
       pc.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { target:userId, candidate:e.candidate }); };
       pc.ontrack = e => connectAudio(userId, e.streams[0] || new MediaStream([e.track]));
-      pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') closePeer(userId); renderPeople(); };
-      pc.oniceconnectionstatechange = renderPeople; peers.set(userId, pc); return pc;
+      pc.restartAttempts = 0;
+      const retry = () => {
+        if (!joined || peers.get(userId) !== pc || isConnected(pc) || !pc.isOfferer) return;
+        if (pc.restartAttempts >= 2) {
+          showToast('Voice link failed. Check TURN service and rejoin.');
+          return;
+        }
+        pc.restartAttempts++;
+        makeOffer(userId, true);
+      };
+      pc.onconnectionstatechange = renderPeople;
+      pc.oniceconnectionstatechange = () => {
+        clearTimeout(pc.restartTimer);
+        if (pc.iceConnectionState === 'failed') retry();
+        else if (pc.iceConnectionState === 'disconnected') pc.restartTimer = setTimeout(retry, 5000);
+        renderPeople();
+      };
+      peers.set(userId, pc); return pc;
     }
     function connectAudio(userId, stream) {
       let a = $(`audio-${userId}`);
@@ -511,12 +528,12 @@
       a.play().catch(() => showToast('Tap PTT to allow incoming audio.'));
     }
     function closePeer(userId) {
-      const pc = peers.get(userId); if (pc) { pc.close(); peers.delete(userId); }
+      const pc = peers.get(userId); if (pc) { clearTimeout(pc.restartTimer); pc.close(); peers.delete(userId); }
       $(`audio-${userId}`)?.remove(); speakingSet.delete(userId);
     }
     async function addPending(pc) { while (pc.pendingCandidates.length) await pc.addIceCandidate(pc.pendingCandidates.shift()); }
-    async function makeOffer(userId) {
-      try { const pc = createPeer(userId); const o = await pc.createOffer(); await pc.setLocalDescription(o); socket.emit('offer', { target:userId, sdp:pc.localDescription }); }
+    async function makeOffer(userId, iceRestart = false) {
+      try { const pc = createPeer(userId); pc.isOfferer = true; const offer = await pc.createOffer({ iceRestart }); await pc.setLocalDescription(offer); socket.emit('offer', { target:userId, sdp:pc.localDescription }); }
       catch(e) { showToast('Connection failed.'); }
     }
 
@@ -525,6 +542,11 @@
     // ═══════════════════════════
     function startTalking(event) {
       event?.preventDefault();
+      document.querySelectorAll('audio').forEach(audio => {
+        if (audio.srcObject && audio.paused) {
+          audio.play().catch(() => showToast('Incoming audio is blocked by your browser.'));
+        }
+      });
       if (!joined || transmitting || !localStream?.getAudioTracks().some(t => t.readyState === 'live')) return;
       meterCtx?.resume().catch(() => {}); getSfxCtx();
       silentFrames = 0; transmitting = true;
@@ -554,8 +576,14 @@
       if (!socket.connected) { socket.connect(); return showToast('Connecting…'); }
       button.disabled = true; const orig = button.textContent; button.textContent = 'Requesting mic…';
       try {
+        const response = await fetch('/api/ice-config', { cache:'no-store', signal:AbortSignal.timeout(10000) });
+        if (!response.ok) throw new Error('Voice relay configuration unavailable. Contact the host.');
+        const config = await response.json();
+        rtcConfiguration = { iceServers:config.iceServers, iceTransportPolicy:config.iceTransportPolicy };
+        if (!config.turnConfigured) showToast('No TURN relay: some networks cannot connect.');
         localStream = await getMic(); setupMicMeter(localStream); await loadMicrophones();
         socket.timeout(8000).emit('join-room', { userName:name, roomCode:code }, async (err, res) => {
+          button.disabled = false; button.textContent = orig;
           if (err) { localStream.getTracks().forEach(t => t.stop()); localStream = null; button.disabled = false; button.textContent = orig; return showToast('Server timeout.'); }
           if (!res?.ok) { localStream.getTracks().forEach(t => t.stop()); localStream = null; button.disabled = false; button.textContent = orig; return showToast(res?.error || 'Cannot join.'); }
           joined = true; currentCode = res.roomCode;
@@ -570,7 +598,11 @@
     // ═══════════════════════════
     //  SOCKET EVENTS
     // ═══════════════════════════
-    socket.on('disconnect', () => { if (joined) ui.screenStatus.textContent = 'LOST SIGNAL'; });
+    socket.on('disconnect', () => {
+      if (!joined) return;
+      leaveRoom();
+      showToast('Server connection lost. Rejoin when connected.');
+    });
     socket.on('connect_error', () => showToast('Connection failed.'));
     socket.on('users-list', list => { usersMap.clear(); list.forEach(u => usersMap.set(u.userId, u)); renderPeople(); });
     socket.on('user-joined', ({ userId }) => { if (joined) createPeer(userId); playStatic(0.08, 0.08); });
@@ -582,6 +614,7 @@
       renderPeople();
     });
     socket.on('offer', async ({ sender, sdp }) => {
+      if (!joined || !localStream) return;
       try { const pc = createPeer(sender); await pc.setRemoteDescription(sdp); await addPending(pc); const a = await pc.createAnswer(); await pc.setLocalDescription(a); socket.emit('answer', { target:sender, sdp:pc.localDescription }); }
       catch(e) { console.error('offer err', e); }
     });
@@ -590,6 +623,7 @@
       catch(e) { console.error('answer err', e); }
     });
     socket.on('ice-candidate', async ({ sender, candidate }) => {
+      if (!joined || !localStream) return;
       const pc = createPeer(sender);
       try { if (pc.remoteDescription) await pc.addIceCandidate(candidate); else pc.pendingCandidates.push(candidate); }
       catch(e) { console.warn('ICE err', e); }
@@ -631,13 +665,17 @@
     window.addEventListener('keyup', e => { if (e.code === 'Space' && joined) stopTalking(e); });
 
     // Leave
-    ui.leave.addEventListener('click', () => {
-      stopTalking(); socket.emit('leave-room');
+    function leaveRoom() {
+      stopTalking();
+      if (socket.connected) socket.emit('leave-room');
       [...peers.keys()].forEach(closePeer);
       localStream?.getTracks().forEach(t => t.stop());
+      localStream = null; currentCode = ''; usersMap.clear(); speakingSet.clear();
       meterCtx?.close().catch(() => {}); cancelAnimationFrame(meterAnim);
       joined = false; ui.room.classList.add('hidden'); ui.entry.classList.remove('hidden'); ui.ptt.disabled = true;
-    });
+    }
+    ui.leave.addEventListener('click', leaveRoom);
+    window.addEventListener('blur', () => stopTalking());
     window.addEventListener('beforeunload', () => { if (joined) socket.emit('leave-room'); });
   })();
   </script>
