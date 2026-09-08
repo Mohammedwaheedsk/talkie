@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { getIceConfiguration } = require('./ice-servers');
 
 const app = express();
 const server = http.createServer(app);
@@ -10,6 +11,14 @@ const MAX_ROOM_SIZE = 8;
 
 app.use(express.static('public'));
 app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/ice-config', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    res.json(getIceConfiguration());
+  } catch (error) {
+    res.status(503).json({ error: error.message });
+  }
+});
 
 function roomCode(value) {
   const code = String(value || '').trim().toUpperCase();
