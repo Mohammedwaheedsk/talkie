@@ -196,34 +196,33 @@
     .toast.show { transform:translate(-50%,0); opacity:1; }
 
     /* ── Video Room ── */
-    .video-room { width:min(100%,1100px); min-height:min(760px,calc(100dvh - 32px)); padding:clamp(16px,4vw,32px);
-      border:1px solid #ffffff12; border-radius:24px; background:linear-gradient(145deg,#142b35,#0d1722);
-      box-shadow:0 24px 70px #00000066; }
-    .video-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
-    .video-title { color:#9affee; font-family:Orbitron,monospace; font-size:clamp(14px,4vw,20px); letter-spacing:1px; }
-    .video-code { color:#7ea5ad; font-family:Orbitron,monospace; font-size:12px; letter-spacing:2px; }
-    .video-grid { position:relative; display:grid; grid-template-columns:1fr; gap:16px; align-items:start; min-height:clamp(420px,68vh,720px); }
-    .video-tile { position:relative; aspect-ratio:16/10; overflow:hidden; border:1px solid #ffffff14; border-radius:16px; background:#071016; box-shadow:0 12px 28px #00000024; }
-    .video-tile.remote { aspect-ratio:16/9; }
-    .video-tile.local { position:absolute; z-index:2; right:18px; bottom:18px; width:clamp(150px,24vw,260px); aspect-ratio:16/10; border-color:#9affee66; box-shadow:0 10px 30px #00000066; }
+    .video-room { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; width:100%; height:100dvh;
+      padding:clamp(10px,2vw,24px); background:#000; color:#fff; overflow:hidden; }
+    .video-header { position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:12px; flex:0 0 auto; }
+    .video-title { color:#d9fffa; font-family:Orbitron,monospace; font-size:clamp(12px,2vw,18px); letter-spacing:1px; text-shadow:0 1px 8px #000; }
+    .video-code { color:#c6d4d5; font-family:Orbitron,monospace; font-size:12px; letter-spacing:2px; text-shadow:0 1px 8px #000; }
+    .video-grid { position:relative; display:grid; place-items:center; flex:1 1 auto; min-height:0; width:100%; background:#000; }
+    .video-tile { position:relative; overflow:hidden; border:0; border-radius:0; background:#000; }
+    .video-tile.remote { width:100%; height:100%; display:grid; place-items:center; }
+    .video-tile.portrait, .video-tile.landscape { width:100%; height:100%; aspect-ratio:auto; }
+    .video-tile.local { position:absolute; z-index:2; right:clamp(12px,2vw,28px); bottom:clamp(12px,2vw,28px); width:clamp(112px,18vw,230px); aspect-ratio:16/9; border:2px solid #fff; border-radius:12px; box-shadow:0 8px 30px #000; }
     .video-tile.local .video-name { color:#9affee; }
-    .video-tile video { width:100%; height:100%; object-fit:cover; display:block; }
+    .video-tile.remote video { width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+    .video-tile.local video { width:100%; height:100%; object-fit:contain; display:block; background:#000; }
     .video-name { position:absolute; left:10px; bottom:8px; padding:4px 7px; border-radius:6px; background:#061018cc; color:#d7ffff; font-size:11px; font-weight:700; }
     .video-empty { display:grid; place-items:center; min-height:180px; color:#66818b; font-size:13px; text-align:center; }
-    .video-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:20px; color:#66818b; font-size:12px; }
+    .video-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; flex:0 0 auto; padding-top:10px; color:#9aabad; font-size:12px; }
     .video-controls { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
     .video-control { min-height:42px; padding:9px 14px; border:1px solid #2a5962; border-radius:10px; background:#102b34; color:#b5fff2; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
     .video-control.muted { border-color:#75424c; background:#321c25; color:#ffb5bd; }
     .video-leave { padding:9px 14px; border:1px solid #613b45; border-radius:8px; background:#291720; color:#e99aa7; font:inherit; font-weight:700; cursor:pointer; }
 
     @media (max-width:640px) {
-      body { align-items:flex-start; padding:10px; padding-top:calc(10px + var(--safe-top)); }
-      .video-room { width:100%; min-height:calc(100dvh - 20px); padding:14px; border-radius:18px; }
-      .video-header { margin-bottom:14px; }
-      .video-grid { gap:10px; min-height:calc(100dvh - 220px); }
-      .video-tile { border-radius:12px; }
-      .video-tile.remote { aspect-ratio:9/16; max-height:calc(100dvh - 220px); }
-      .video-tile.local { right:12px; bottom:12px; width:34vw; min-width:112px; max-width:150px; border-radius:10px; }
+      body { align-items:flex-start; padding:0; }
+      .video-room { padding:calc(8px + var(--safe-top)) 8px calc(8px + var(--safe-bottom)); }
+      .video-header { padding:0 6px; }
+      .video-grid { min-height:0; }
+      .video-tile.local { right:10px; bottom:10px; width:31vw; min-width:104px; max-width:150px; border-radius:10px; }
       .video-footer { align-items:stretch; flex-direction:column; gap:12px; }
       .video-controls { display:grid; grid-template-columns:1fr 1fr; justify-content:stretch; }
       .video-control, .video-leave { width:100%; min-height:46px; }
@@ -544,7 +543,7 @@
         }));
         const oldTrack = localStream.getVideoTracks()[0];
         localStream.removeTrack(oldTrack); localStream.addTrack(nextTrack); oldTrack?.stop();
-        ui.localVideo.srcObject = localStream; await ui.localVideo.play().catch(() => {});
+        ui.localVideo.srcObject = localStream; applyVideoOrientation(ui.localVideo, ui.localVideo.closest('.video-tile')); await ui.localVideo.play().catch(() => {});
         showToast(cameraFacing === 'environment' ? 'Rear camera.' : 'Front camera.');
       } catch (error) {
         cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
@@ -640,6 +639,15 @@
       if (a.srcObject !== stream) a.srcObject = stream;
       a.play().catch(() => showToast('Tap PTT to allow incoming audio.'));
     }
+    function applyVideoOrientation(video, tile) {
+      const update = () => {
+        if (!video.videoWidth || !video.videoHeight) return;
+        tile.classList.toggle('portrait', video.videoHeight > video.videoWidth);
+        tile.classList.toggle('landscape', video.videoWidth >= video.videoHeight);
+      };
+      video.addEventListener('loadedmetadata', update, { once:true });
+      update();
+    }
     function connectVideo(userId, stream) {
       let tile = $(`video-tile-${userId}`);
       if (!tile) {
@@ -647,8 +655,10 @@
         const video = document.createElement('video'); video.id = `video-${userId}`; video.autoplay = true; video.playsInline = true;
         const label = document.createElement('div'); label.className = 'video-name';
         label.textContent = usersMap.get(userId)?.name || 'Participant'; tile.append(video, label); ui.videoGrid.append(tile);
+        applyVideoOrientation(video, tile);
       }
       const video = $(`video-${userId}`); video.srcObject = stream; video.play().catch(() => {});
+      applyVideoOrientation(video, tile);
       ui.videoStatus.textContent = `${Math.max(1, ui.videoGrid.children.length - 1)} participant connected`;
     }
     function closePeer(userId) {
@@ -718,7 +728,7 @@
           if (mode === 'video') {
             videoMicMuted = false; ui.toggleVideoMic.textContent = 'Mute mic'; ui.toggleVideoMic.classList.remove('muted');
             ui.videoRoomCode.textContent = currentCode; ui.videoScreen.classList.remove('hidden');
-            ui.localVideo.srcObject = localStream; ui.localVideo.play().catch(() => {});
+            ui.localVideo.srcObject = localStream; applyVideoOrientation(ui.localVideo, ui.localVideo.closest('.video-tile')); ui.localVideo.play().catch(() => {});
           } else {
             ui.roomCode.textContent = currentCode; ui.freq.textContent = codeToFreq(currentCode);
             ui.room.classList.remove('hidden'); ui.ptt.disabled = false;
