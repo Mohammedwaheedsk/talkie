@@ -36,8 +36,12 @@
     .entry-brand .icon { font-size:clamp(36px,10vw,50px); filter:drop-shadow(0 4px 12px #ff660040); }
     .entry-brand h1 { font-family:Orbitron,monospace; font-size:clamp(20px,6vw,28px); font-weight:900;
       letter-spacing:2px; margin:8px 0 4px;
-      background:linear-gradient(135deg,#ff8844,#ffcc44); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+      background:linear-gradient(135deg,#ff8844,#ffcc44); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
     .entry-brand p { color:#6b7a99; font-size:clamp(11px,3vw,13px); }
+    .mode-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .mode-tab { padding:10px; border:1px solid #1e2a44; border-radius:10px; background:#0e1524;
+      color:#6b7a99; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+    .mode-tab.on { background:#183b4a; border-color:#2cc4c0; color:#9affee; }
     .tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
     .tab { padding:clamp(9px,2.5vw,11px); border:1px solid #1e2a44; border-radius:12px; background:#0e1524;
       color:#6b7a99; font-size:clamp(12px,3.2vw,13px); font-weight:700; cursor:pointer; transition:.2s; }
@@ -191,6 +195,25 @@
       box-shadow:0 8px 30px #00000060; z-index:999; white-space:nowrap; max-width:calc(100vw - 32px); }
     .toast.show { transform:translate(-50%,0); opacity:1; }
 
+    /* ── Video Room ── */
+    .video-room { width:min(100%,900px); min-height:min(760px,calc(100dvh - 32px)); padding:clamp(16px,4vw,28px);
+      border:1px solid #ffffff12; border-radius:24px; background:linear-gradient(145deg,#142b35,#0d1722);
+      box-shadow:0 24px 70px #00000066; }
+    .video-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .video-title { color:#9affee; font-family:Orbitron,monospace; font-size:clamp(14px,4vw,20px); letter-spacing:1px; }
+    .video-code { color:#7ea5ad; font-family:Orbitron,monospace; font-size:12px; letter-spacing:2px; }
+    .video-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .video-tile { position:relative; aspect-ratio:16/10; overflow:hidden; border:1px solid #ffffff14; border-radius:14px; background:#071016; }
+    .video-tile video { width:100%; height:100%; object-fit:cover; display:block; transform:scaleX(-1); }
+    .video-tile.remote video { transform:none; }
+    .video-name { position:absolute; left:10px; bottom:8px; padding:4px 7px; border-radius:6px; background:#061018cc; color:#d7ffff; font-size:11px; font-weight:700; }
+    .video-empty { display:grid; place-items:center; min-height:180px; color:#66818b; font-size:13px; text-align:center; }
+    .video-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:18px; color:#66818b; font-size:12px; }
+    .video-controls { display:flex; gap:8px; flex-wrap:wrap; }
+    .video-control { padding:9px 12px; border:1px solid #2a5962; border-radius:8px; background:#102b34; color:#b5fff2; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+    .video-control.muted { border-color:#75424c; background:#321c25; color:#ffb5bd; }
+    .video-leave { padding:9px 14px; border:1px solid #613b45; border-radius:8px; background:#291720; color:#e99aa7; font:inherit; font-weight:700; cursor:pointer; }
+
     /* ── Landscape phone: side-by-side layout ── */
     @media (max-height:500px) and (orientation:landscape) {
       body { align-items:flex-start; padding:8px; }
@@ -222,6 +245,10 @@
       <h1>WALKIETALKIE</h1>
       <p>Private push-to-talk voice rooms</p>
     </div>
+    <div class="mode-tabs">
+      <button class="mode-tab on" id="audioMode" type="button">📻 Walkie-talkie</button>
+      <button class="mode-tab" id="videoMode" type="button">▣ Video call</button>
+    </div>
     <div class="tabs">
       <button class="tab on" id="createTab" type="button">Create Room</button>
       <button class="tab" id="joinTab" type="button">Join Room</button>
@@ -230,13 +257,13 @@
       <label for="createName">Call Sign</label>
       <input id="createName" maxlength="24" autocomplete="name" placeholder="e.g. Alpha-1" required>
       <button class="btn btn-go" type="submit">📡 Create Channel</button>
-      <p class="entry-hint">A unique channel code will be generated for you.</p>
+      <p class="entry-hint">A unique 6-character room code will be generated for you.</p>
     </form>
     <form id="joinForm" class="entry-form hidden">
       <label for="joinName">Call Sign</label>
       <input id="joinName" maxlength="24" autocomplete="name" placeholder="e.g. Bravo-2" required>
       <label for="joinCode">Channel Code</label>
-      <input id="joinCode" maxlength="16" autocapitalize="characters" autocomplete="off" placeholder="e.g. A7K9P2" required>
+      <input id="joinCode" maxlength="6" minlength="6" autocapitalize="characters" autocomplete="off" placeholder="e.g. A7K9P2" required>
       <button class="btn btn-go" type="submit">📡 Tune In</button>
       <p class="entry-hint">Get the code from whoever created the channel.</p>
     </form>
@@ -298,6 +325,24 @@
     </div>
   </div>
 
+  <div class="video-room hidden" id="videoScreen">
+    <div class="video-header">
+      <div class="video-title">VIDEO ROOM</div>
+      <div class="video-code" id="videoRoomCode">------</div>
+    </div>
+    <div class="video-grid" id="videoGrid">
+      <div class="video-tile"><video id="localVideo" autoplay muted playsinline></video><div class="video-name">You</div></div>
+    </div>
+    <div class="video-footer">
+      <span id="videoStatus">Waiting for another camera…</span>
+      <div class="video-controls">
+        <button class="video-control" id="switchCamera" type="button">Switch camera</button>
+        <button class="video-control" id="toggleVideoMic" type="button">Mute mic</button>
+        <button class="video-leave" id="videoLeave" type="button">Leave call</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -308,6 +353,7 @@
     const ui = {
       entry:$('entryScreen'), room:$('roomScreen'),
       createTab:$('createTab'), joinTab:$('joinTab'),
+      audioMode:$('audioMode'), videoMode:$('videoMode'),
       createForm:$('createForm'), joinForm:$('joinForm'),
       createName:$('createName'), joinName:$('joinName'), joinCode:$('joinCode'),
       roomCode:$('roomCode'), people:$('people'),
@@ -315,7 +361,10 @@
       freq:$('freqDisplay'), screenStatus:$('screenStatus'),
       signalBars:$('signalBars'), antenna:$('antenna'),
       micLevel:$('micLevel'), micState:$('micState'),
-      micSelect:$('micSelect'), toast:$('toast')
+      micSelect:$('micSelect'), toast:$('toast'),
+      videoScreen:$('videoScreen'), videoGrid:$('videoGrid'), localVideo:$('localVideo'),
+      videoRoomCode:$('videoRoomCode'), videoStatus:$('videoStatus'), videoLeave:$('videoLeave'),
+      switchCamera:$('switchCamera'), toggleVideoMic:$('toggleVideoMic')
     };
     let toastTimer;
 
@@ -328,7 +377,8 @@
     const socket = io({ transports:['websocket','polling'] });
     const peers = new Map(), speakingSet = new Set(), usersMap = new Map();
     let rtcConfiguration;
-    let localStream, currentCode = '', transmitting = false, joined = false;
+    let localStream, currentCode = '', transmitting = false, joined = false, mode = 'audio';
+    let cameraFacing = 'user', videoMicMuted = false;
     let meterCtx, meterAnim, silentFrames = 0;
 
     // ═══════════════════════════
@@ -378,7 +428,7 @@
     function newCode() {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       const rnd = new Uint32Array(8); crypto.getRandomValues(rnd);
-      return Array.from(rnd, n => chars[n % chars.length]).join('');
+      return Array.from(rnd.slice(0, 6), n => chars[n % chars.length]).join('');
     }
     function codeToFreq(code) {
       let h = 0; for (let i = 0; i < code.length; i++) h = ((h << 5) - h + code.charCodeAt(i)) | 0;
@@ -389,6 +439,14 @@
       ui.createForm.classList.toggle('hidden', !c); ui.joinForm.classList.toggle('hidden', c);
       ui.createTab.classList.toggle('on', c); ui.joinTab.classList.toggle('on', !c);
       (c ? ui.createName : ui.joinName).focus();
+    }
+    function changeMode(nextMode) {
+      mode = nextMode;
+      const isVideo = mode === 'video';
+      ui.audioMode.classList.toggle('on', !isVideo); ui.videoMode.classList.toggle('on', isVideo);
+      ui.entry.querySelector('.entry-brand p').textContent = isVideo ? 'Private video call rooms' : 'Private push-to-talk voice rooms';
+      ui.createForm.querySelector('button').textContent = isVideo ? '▣ Create Video Room' : '📡 Create Channel';
+      ui.joinForm.querySelector('button').textContent = isVideo ? '▣ Join Video Room' : '📡 Tune In';
     }
     function setSignal(count) {
       const bars = ui.signalBars.children;
@@ -448,6 +506,44 @@
       const s = await navigator.mediaDevices.getUserMedia({ audio:audioConstraints(deviceId), video:false });
       s.getAudioTracks().forEach(t => t.enabled = transmitting); return s;
     }
+    async function getCamera() {
+      return navigator.mediaDevices.getUserMedia({
+        audio:{ channelCount:{ ideal:1 }, echoCancellation:{ ideal:true }, noiseSuppression:{ ideal:true } },
+        video:{ width:{ ideal:1280 }, height:{ ideal:720 }, facingMode:{ ideal:cameraFacing } }
+      });
+    }
+    async function switchCamera() {
+      if (mode !== 'video' || !localStream) return;
+      ui.switchCamera.disabled = true;
+      let nextStream;
+      try {
+        const cameras = (await navigator.mediaDevices.enumerateDevices()).filter(device => device.kind === 'videoinput');
+        const currentId = localStream.getVideoTracks()[0]?.getSettings().deviceId;
+        const nextCamera = cameras.find((camera, index) => camera.deviceId !== currentId && (!currentId || index > cameras.findIndex(item => item.deviceId === currentId))) || cameras.find(camera => camera.deviceId !== currentId);
+        nextStream = nextCamera
+          ? await navigator.mediaDevices.getUserMedia({ video:{ deviceId:{ exact:nextCamera.deviceId }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false })
+          : (cameraFacing = cameraFacing === 'user' ? 'environment' : 'user', await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ exact:cameraFacing }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false }));
+        const nextTrack = nextStream.getVideoTracks()[0];
+        await Promise.all([...peers.values()].map(pc => {
+          const sender = pc.getSenders().find(item => item.track?.kind === 'video');
+          return sender ? sender.replaceTrack(nextTrack) : Promise.resolve();
+        }));
+        const oldTrack = localStream.getVideoTracks()[0];
+        localStream.removeTrack(oldTrack); localStream.addTrack(nextTrack); oldTrack?.stop();
+        ui.localVideo.srcObject = localStream; await ui.localVideo.play().catch(() => {});
+        showToast('Camera switched.');
+      } catch (error) {
+        nextStream?.getTracks().forEach(track => track.stop());
+        showToast('Could not switch camera.');
+      } finally { ui.switchCamera.disabled = false; }
+    }
+    function toggleVideoMic() {
+      if (mode !== 'video' || !localStream) return;
+      videoMicMuted = !videoMicMuted;
+      localStream.getAudioTracks().forEach(track => { track.enabled = !videoMicMuted; });
+      ui.toggleVideoMic.textContent = videoMicMuted ? 'Unmute mic' : 'Mute mic';
+      ui.toggleVideoMic.classList.toggle('muted', videoMicMuted);
+    }
     async function loadMicrophones() {
       try {
         const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
@@ -498,9 +594,11 @@
     function createPeer(userId) {
       if (peers.has(userId)) return peers.get(userId);
       const pc = new RTCPeerConnection(rtcConfiguration); pc.pendingCandidates = [];
-      localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       pc.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { target:userId, candidate:e.candidate }); };
-      pc.ontrack = e => connectAudio(userId, e.streams[0] || new MediaStream([e.track]));
+      pc.ontrack = e => mode === 'video'
+        ? connectVideo(userId, e.streams[0] || new MediaStream([e.track]))
+        : connectAudio(userId, e.streams[0] || new MediaStream([e.track]));
       pc.restartAttempts = 0;
       const retry = () => {
         if (!joined || peers.get(userId) !== pc || isConnected(pc) || !pc.isOfferer) return;
@@ -527,9 +625,22 @@
       if (a.srcObject !== stream) a.srcObject = stream;
       a.play().catch(() => showToast('Tap PTT to allow incoming audio.'));
     }
+    function connectVideo(userId, stream) {
+      let tile = $(`video-tile-${userId}`);
+      if (!tile) {
+        tile = document.createElement('div'); tile.id = `video-tile-${userId}`; tile.className = 'video-tile remote';
+        const video = document.createElement('video'); video.id = `video-${userId}`; video.autoplay = true; video.playsInline = true;
+        const label = document.createElement('div'); label.className = 'video-name';
+        label.textContent = usersMap.get(userId)?.name || 'Participant'; tile.append(video, label); ui.videoGrid.append(tile);
+      }
+      const video = $(`video-${userId}`); video.srcObject = stream; video.play().catch(() => {});
+      ui.videoStatus.textContent = `${Math.max(1, ui.videoGrid.children.length - 1)} participant connected`;
+    }
     function closePeer(userId) {
       const pc = peers.get(userId); if (pc) { clearTimeout(pc.restartTimer); pc.close(); peers.delete(userId); }
       $(`audio-${userId}`)?.remove(); speakingSet.delete(userId);
+      $(`video-tile-${userId}`)?.remove();
+      if (mode === 'video') ui.videoStatus.textContent = ui.videoGrid.children.length > 1 ? `${ui.videoGrid.children.length - 1} participant connected` : 'Waiting for another camera…';
     }
     async function addPending(pc) { while (pc.pendingCandidates.length) await pc.addIceCandidate(pc.pendingCandidates.shift()); }
     async function makeOffer(userId, iceRestart = false) {
@@ -574,22 +685,30 @@
     async function enterRoom(name, code, button) {
       if (!name || !code) return showToast('Enter call sign and code.');
       if (!socket.connected) { socket.connect(); return showToast('Connecting…'); }
-      button.disabled = true; const orig = button.textContent; button.textContent = 'Requesting mic…';
+      button.disabled = true; const orig = button.textContent; button.textContent = mode === 'video' ? 'Requesting camera…' : 'Requesting mic…';
       try {
         const response = await fetch('/api/ice-config', { cache:'no-store', signal:AbortSignal.timeout(10000) });
         if (!response.ok) throw new Error('Voice relay configuration unavailable. Contact the host.');
         const config = await response.json();
         rtcConfiguration = { iceServers:config.iceServers, iceTransportPolicy:config.iceTransportPolicy };
         if (!config.turnConfigured) showToast('No TURN relay: some networks cannot connect.');
-        localStream = await getMic(); setupMicMeter(localStream); await loadMicrophones();
-        socket.timeout(8000).emit('join-room', { userName:name, roomCode:code }, async (err, res) => {
+        localStream = mode === 'video' ? await getCamera() : await getMic();
+        if (mode === 'audio') { setupMicMeter(localStream); await loadMicrophones(); }
+        socket.timeout(8000).emit('join-room', { userName:name, roomCode:code, mode }, async (err, res) => {
           button.disabled = false; button.textContent = orig;
           if (err) { localStream.getTracks().forEach(t => t.stop()); localStream = null; button.disabled = false; button.textContent = orig; return showToast('Server timeout.'); }
           if (!res?.ok) { localStream.getTracks().forEach(t => t.stop()); localStream = null; button.disabled = false; button.textContent = orig; return showToast(res?.error || 'Cannot join.'); }
           joined = true; currentCode = res.roomCode;
-          ui.roomCode.textContent = currentCode; ui.freq.textContent = codeToFreq(currentCode);
-          ui.entry.classList.add('hidden'); ui.room.classList.remove('hidden'); ui.ptt.disabled = false;
-          getSfxCtx(); playStatic(0.25, 0.12);
+          ui.entry.classList.add('hidden');
+          if (mode === 'video') {
+            videoMicMuted = false; ui.toggleVideoMic.textContent = 'Mute mic'; ui.toggleVideoMic.classList.remove('muted');
+            ui.videoRoomCode.textContent = currentCode; ui.videoScreen.classList.remove('hidden');
+            ui.localVideo.srcObject = localStream; ui.localVideo.play().catch(() => {});
+          } else {
+            ui.roomCode.textContent = currentCode; ui.freq.textContent = codeToFreq(currentCode);
+            ui.room.classList.remove('hidden'); ui.ptt.disabled = false;
+            getSfxCtx(); playStatic(0.25, 0.12);
+          }
           for (const u of res.users) await makeOffer(u.userId);
         });
       } catch(e) { button.disabled = false; button.textContent = orig; showToast(e.name === 'NotAllowedError' ? 'Mic denied.' : e.message || 'Mic error.'); }
@@ -605,7 +724,7 @@
     });
     socket.on('connect_error', () => showToast('Connection failed.'));
     socket.on('users-list', list => { usersMap.clear(); list.forEach(u => usersMap.set(u.userId, u)); renderPeople(); });
-    socket.on('user-joined', ({ userId }) => { if (joined) createPeer(userId); playStatic(0.08, 0.08); });
+    socket.on('user-joined', ({ userId }) => { if (joined) createPeer(userId); if (mode === 'audio') playStatic(0.08, 0.08); });
     socket.on('user-left', ({ userId }) => { closePeer(userId); renderPeople(); });
     socket.on('user-speaking-state', ({ userId, isSpeaking }) => {
       isSpeaking ? speakingSet.add(userId) : speakingSet.delete(userId);
@@ -634,12 +753,14 @@
     // ═══════════════════════════
     ui.createTab.addEventListener('click', () => changeTab('create'));
     ui.joinTab.addEventListener('click', () => changeTab('join'));
+    ui.audioMode.addEventListener('click', () => changeMode('audio'));
+    ui.videoMode.addEventListener('click', () => changeMode('video'));
     ui.micSelect.addEventListener('change', () => switchMicrophone(ui.micSelect.value));
     navigator.mediaDevices?.addEventListener?.('devicechange', loadMicrophones);
     ui.createForm.addEventListener('submit', e => { e.preventDefault(); enterRoom(ui.createName.value.trim(), newCode(), e.submitter); });
     ui.joinForm.addEventListener('submit', e => {
       e.preventDefault(); const code = ui.joinCode.value.trim().toUpperCase();
-      if (!/^[A-Z0-9]{4,16}$/.test(code)) return showToast('Code: 4–16 letters/numbers.');
+      if (!/^[A-Z0-9]{6}$/.test(code)) return showToast('Code: exactly 6 letters/numbers.');
       enterRoom(ui.joinName.value.trim(), code, e.submitter);
     });
     ui.copy.addEventListener('click', async () => {
@@ -672,9 +793,14 @@
       localStream?.getTracks().forEach(t => t.stop());
       localStream = null; currentCode = ''; usersMap.clear(); speakingSet.clear();
       meterCtx?.close().catch(() => {}); cancelAnimationFrame(meterAnim);
-      joined = false; ui.room.classList.add('hidden'); ui.entry.classList.remove('hidden'); ui.ptt.disabled = true;
+      joined = false; ui.room.classList.add('hidden'); ui.videoScreen.classList.add('hidden'); ui.localVideo.srcObject = null;
+      videoMicMuted = false; ui.toggleVideoMic.textContent = 'Mute mic'; ui.toggleVideoMic.classList.remove('muted');
+      ui.entry.classList.remove('hidden'); ui.ptt.disabled = true;
     }
     ui.leave.addEventListener('click', leaveRoom);
+    ui.videoLeave.addEventListener('click', leaveRoom);
+    ui.switchCamera.addEventListener('click', switchCamera);
+    ui.toggleVideoMic.addEventListener('click', toggleVideoMic);
     window.addEventListener('blur', () => stopTalking());
     window.addEventListener('beforeunload', () => { if (joined) socket.emit('leave-room'); });
   })();
